@@ -1,0 +1,18 @@
+# FaithfulReward — Dependencies
+# Install with: pip install -r requirements.txt
+
+# ── Core ML stack ─────────────────────────────────────────────────────────────
+torch>=2.1.0
+transformers>=4.40.0
+datasets>=2.18.0
+
+# ── RL fine-tuning ────────────────────────────────────────────────────────────
+trl>=0.8.6          # GRPOTrainer lives here
+peft>=0.10.0        # LoRA / QLoRA
+accelerate>=0.28.0  # multi-device training
+
+# ── 4-bit quantization (RTX 3050 support) ────────────────────────────────────
+bitsandbytes>=0.43.0
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest>=8.0.0
