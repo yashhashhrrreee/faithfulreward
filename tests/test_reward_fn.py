@@ -169,3 +169,146 @@ def test_reward_stats_structure():
     assert "faithful_pct" in stats
     assert "most_common_weak_dim" in stats
     assert stats["n"] == 3
+
+
+# ── Format reward bonus tests ─────────────────────────────────────────────────
+
+from src.reward_model.reward_fn import format_reward_bonus
+
+VALID_COMPLETION = (
+    "STEP: Since p is prime, p must be odd.\n"
+    "SCORES: logical_validity=0.90, reference_integrity=0.88, necessity_score=0.80\n"
+    "VERDICT: faithful"
+)
+MISSING_VERDICT_COMPLETION = (
+    "STEP: Since p is prime, p must be odd.\n"
+    "SCORES: logical_validity=0.90, reference_integrity=0.88, necessity_score=0.80"
+)
+MISSING_SCORES_COMPLETION = (
+    "STEP: Since p is prime, p must be odd.\n"
+    "VERDICT: faithful"
+)
+MALFORMED_COMPLETION = "I think this step is probably fine based on intuition."
+
+
+def test_format_reward_bonus_applies_for_valid_completion():
+    result = format_reward_bonus(VALID_COMPLETION, 0.5)
+    assert abs(result - 0.6) < 1e-4
+
+
+def test_format_reward_bonus_clips_to_one():
+    result = format_reward_bonus(VALID_COMPLETION, 1.0)
+    assert result == 1.0
+
+
+def test_format_reward_bonus_negative_base_still_gets_bonus():
+    result = format_reward_bonus(VALID_COMPLETION, -0.5)
+    assert abs(result - (-0.4)) < 1e-4
+
+
+def test_format_reward_bonus_no_bonus_missing_verdict():
+    result = format_reward_bonus(MISSING_VERDICT_COMPLETION, 0.5)
+    assert result == 0.5
+
+
+def test_format_reward_bonus_no_bonus_missing_scores():
+    result = format_reward_bonus(MISSING_SCORES_COMPLETION, 0.5)
+    assert result == 0.5
+
+
+def test_format_reward_bonus_no_bonus_malformed():
+    result = format_reward_bonus(MALFORMED_COMPLETION, -0.3)
+    assert result == -0.3
+
+
+# ── completion_valid_rate tests ───────────────────────────────────────────────
+
+def test_completion_valid_rate_tracks_valid_completions():
+    from src.training.grpo_trainer import faithfulness_reward_fn, _valid_completions_window
+    _valid_completions_window.clear()
+
+    completions = [VALID_COMPLETION, MISSING_VERDICT_COMPLETION, VALID_COMPLETION, MALFORMED_COMPLETION]
+    faithfulness_reward_fn(completions)
+
+    valid_count = sum(_valid_completions_window)
+    assert valid_count == 2  # 2 of 4 completions are fully valid
+
+
+def test_completion_valid_rate_zero_for_all_malformed():
+    from src.training.grpo_trainer import faithfulness_reward_fn, _valid_completions_window
+    _valid_completions_window.clear()
+
+    completions = [MALFORMED_COMPLETION, "no format", "garbage"]
+    faithfulness_reward_fn(completions)
+
+    assert sum(_valid_completions_window) == 0
+
+
+def test_completion_valid_rate_one_for_all_valid():
+    from src.training.grpo_trainer import faithfulness_reward_fn, _valid_completions_window
+    _valid_completions_window.clear()
+
+    completions = [VALID_COMPLETION, VALID_COMPLETION, VALID_COMPLETION]
+    faithfulness_reward_fn(completions)
+
+    rate = sum(_valid_completions_window) / len(_valid_completions_window)
+    assert abs(rate - 1.0) < 1e-9
+
+
+# ── format_warmup tests ───────────────────────────────────────────────────────
+
+def test_build_warmup_examples_returns_20():
+    from src.training.grpo_trainer import _build_warmup_examples
+    examples = _build_warmup_examples()
+    assert len(examples) == 20
+
+
+def test_warmup_examples_all_have_scores_line():
+    from src.training.grpo_trainer import _build_warmup_examples
+    examples = _build_warmup_examples()
+    for ex in examples:
+        assert "SCORES:" in ex["text"], f"Missing SCORES: in example: {ex['text'][:80]}"
+
+
+def test_warmup_examples_all_have_verdict_line():
+    from src.training.grpo_trainer import _build_warmup_examples
+    examples = _build_warmup_examples()
+    for ex in examples:
+        assert "VERDICT:" in ex["text"], f"Missing VERDICT: in example: {ex['text'][:80]}"
+
+
+def test_format_warmup_callable():
+    from src.training.grpo_trainer import format_warmup
+    assert callable(format_warmup)
+
+
+def test_format_warmup_with_mocked_trainer():
+    """format_warmup should call SFTTrainer.train() and return sft_trainer.model."""
+    from unittest.mock import MagicMock, patch
+
+    mock_model = MagicMock()
+    mock_tokenizer = MagicMock()
+    mock_lora_config = MagicMock()
+    mock_trained_model = MagicMock()
+
+    mock_sft_instance = MagicMock()
+    mock_sft_instance.model = mock_trained_model
+
+    mock_dataset_cls = MagicMock()
+    mock_dataset_cls.from_list.return_value = MagicMock()
+
+    mock_trl = MagicMock()
+    mock_trl.SFTConfig.return_value = MagicMock()
+    mock_trl.SFTTrainer.return_value = mock_sft_instance
+
+    with patch.dict("sys.modules", {"trl": mock_trl, "datasets": MagicMock(Dataset=mock_dataset_cls)}):
+        import importlib
+        import src.training.grpo_trainer as trainer_module
+        importlib.reload(trainer_module)
+
+        result = trainer_module.format_warmup(
+            mock_model, mock_tokenizer, mock_lora_config, warmup_steps=1
+        )
+
+    mock_sft_instance.train.assert_called_once()
+    assert result == mock_trained_model

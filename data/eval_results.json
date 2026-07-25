@@ -2,14 +2,14 @@
   "baseline": {
     "model": "baseline (no RL)",
     "n_samples": 60,
-    "mean_reward": 0.0201,
-    "faithful_pct": 45.0,
-    "flagged_rate": 46.7,
-    "divergence_rate": 11.7,
+    "mean_reward": 0.1859,
+    "faithful_pct": 56.7,
+    "flagged_rate": 45.0,
+    "divergence_rate": 21.7,
     "domain_mean_rewards": {
-      "medical": -0.2208,
-      "ethics": 0.2364,
-      "math": 0.0321
+      "math": 0.3385,
+      "medical": 0.2371,
+      "ethics": -0.1164
     },
     "most_common_weak_dim": "reference_integrity"
   },
@@ -17,6 +17,12 @@
     "model": "checkpoints/faithfulreward/final",
     "n_samples": 60,
     "mean_reward": -0.3,
-    "faithful_pct": 0.0
+    "faithful_pct": 0.0,
+    "completion_valid_rate": 0.0,
+    "domain_mean_rewards": {
+      "math": -0.3,
+      "medical": -0.3,
+      "ethics": -0.3
+    }
   }
 }

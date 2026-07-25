@@ -164,6 +164,35 @@ def reward_stats(results: list[RewardResult]) -> dict:
     }
 
 
+def format_reward_bonus(completion: str, base_reward: float) -> float:
+    """
+    Add +0.1 bonus if completion contains both a valid SCORES: line (all 3 keys)
+    and a valid VERDICT: line (faithful/unfaithful). Clips result to [-1, +1].
+
+    Gives GRPO a gradient signal purely for correct formatting, separate from
+    the faithfulness signal.
+    """
+    has_valid_scores = False
+    has_verdict = False
+
+    for line in completion.split("\n"):
+        line = line.strip()
+        if line.startswith("SCORES:"):
+            score_part = line.replace("SCORES:", "").strip()
+            parts = [p.strip() for p in score_part.split(",") if "=" in p]
+            keys = {p.split("=", 1)[0].strip() for p in parts}
+            if keys == {"logical_validity", "reference_integrity", "necessity_score"}:
+                has_valid_scores = True
+        elif line.startswith("VERDICT:"):
+            verdict_val = line.replace("VERDICT:", "").strip().lower()
+            if verdict_val in ("faithful", "unfaithful"):
+                has_verdict = True
+
+    if has_valid_scores and has_verdict:
+        return max(-1.0, min(1.0, round(base_reward + 0.1, 4)))
+    return base_reward
+
+
 # ── Quick demo ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("=== FaithfulReward — Reward Function Demo ===\n")

@@ -2,9 +2,19 @@
 
 > *Using GRPO and rule-based verifiable rewards to train LLMs to produce more faithful reasoning chains — without a learned reward model.*
 
-[![Tests](https://img.shields.io/badge/tests-25%20passing-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-39%20passing-brightgreen)](tests/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](requirements.txt)
 [![Model](https://img.shields.io/badge/model-Qwen2.5--0.5B-orange)](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct)
+
+---
+
+## Version History
+
+| Version | Status | Key Change |
+|---|---|---|
+| v1.0 | complete | Proof of concept — pipeline works, model didn't converge (truncation at 100 tokens) |
+| v2.0 | complete | SFT warmup + format reward + 256 tokens — valid_rate 0%→37%, peak reward +0.173 |
+| v3.0 | planned | Convergence run — 1000 steps + curriculum learning (math→ethics→medical) |
 
 ---
 
@@ -20,17 +30,31 @@ We use **GRPO** (Group Relative Policy Optimization — the same algorithm behin
 
 ## Key Results
 
-| Metric | Baseline | After GRPO |
-|---|---|---|
-| Mean Reward | +0.020 | +0.150 |
-| Faithful % | 45% | ~58% (projected) |
-| Flagged Rate | 46.7% | ~30% (projected) |
-| Weakest dim | `reference_integrity` | `reference_integrity` |
+### V1 vs V2 Side-by-Side
 
-**Domain breakdown (mean reward improvement after training):**
-- Math: Δ+0.106 (tight deductive chains, clearest signal)
-- Ethics: Δ+0.128 (value judgements → better qualified claims)
-- Medical: Δ+0.158 (largest gain — causal claims most reduced)
+| Metric | V1 Baseline | V1 Trained | V2 Baseline | V2 Trained |
+|---|---|---|---|---|
+| Mean Reward | +0.020 | −0.300 | +0.186 | −0.300 (eval temp=0.1) |
+| Faithful % | 45.0% | 0.0% | 56.7% | 0.0% (eval temp=0.1) |
+| Flagged Rate % | 46.7% | N/A | 45.0% | N/A |
+| Completion Valid % (training) | 0% | 0% | N/A | **15–37%** |
+| Peak Training Reward | — | −0.300 | — | **+0.173** (step 230) |
+| Training Steps | 50 | — | 300 + 50 SFT warmup | — |
+| max_new_tokens | 100 | — | 256 | — |
+
+**V1 failure explanation:** All completions were clipped at 100 tokens before emitting a `SCORES:` line. GRPO received only −0.30 (malformed penalty) on every step — no gradient signal.
+
+**V2 primary fix:** `max_new_tokens=256` gives completions enough budget to reach `SCORES:`. SFT warmup bootstraps the format so GRPO starts from a non-zero `completion_valid_rate`.
+
+**Domain breakdown (mean reward, baseline):**
+
+| Domain | V1 Baseline | V2 Baseline |
+|---|---|---|
+| Math | +0.032 | +0.339 |
+| Ethics | +0.236 | −0.116 |
+| Medical | −0.221 | +0.237 |
+
+*V2 baseline differs from V1 due to changed domain distribution (medical oversampled to 40%) and different random test split.*
 
 ---
 
@@ -40,19 +64,21 @@ We use **GRPO** (Group Relative Policy Optimization — the same algorithm behin
 divergence_log.jsonl          ← FaithfulChain output + human verdicts
         │
         ▼
-generate_synthetic_data.py    ← Expands <10 records to 300 for training
+generate_synthetic_data.py    ← 300 records; medical 40%, math/ethics 30% each
         │
         ▼
 reward_fn.py                  ← Rule-based scalar reward from 3 auditor dims
-  logical_validity  × 0.45
+  logical_validity  × 0.45       + format_reward_bonus (+0.1) for SCORES:+VERDICT:
   reference_integrity × 0.35
   necessity_score   × 0.20
         │
         ▼
-grpo_trainer.py               ← TRL GRPOTrainer + LoRA on Qwen2.5-0.5B (4-bit)
+grpo_trainer.py               ← SFT warmup (50 steps) → GRPO (300 steps)
+  format_warmup()                20 hand-written examples to bootstrap structure
+  completion_valid_rate          logged per step to data/reward_curve.json
         │
         ▼
-evaluate.py                   ← Before/after comparison across 3 domains
+evaluate.py                   ← Before/after comparison + completion_valid_rate
 ```
 
 ### Why GRPO over PPO?
@@ -83,9 +109,26 @@ WEIGHTS = {"logical_validity": 0.45, "reference_integrity": 0.35, "necessity_sco
 
 # Reward in [-1, +1]; magnitude reflects confidence
 reward = ±(0.5 + confidence_scale)
+
+# v2: format bonus applied after faithfulness reward
+if completion has valid SCORES: AND VERDICT::
+    reward += 0.1  # clipped to [-1, +1]
 ```
 
 Human verdicts override auditor scores when they diverge — preserving the human-in-the-loop signal from FaithfulChain.
+
+---
+
+## What V2 Fixed vs What V3 Will Address
+
+| Issue | V1 | V2 | V3 (planned) |
+|---|---|---|---|
+| Token budget | 100 (truncated) | 256 (fixed) | 256+ |
+| Format bootstrap | None | SFT warmup, 20 examples | SFT warmup, 100 examples |
+| Training steps | 50 | 300 | 1000+ |
+| Format reward | None | +0.1 bonus | +0.1 bonus |
+| Domain balance | Equal 33/33/33% | Medical 40% | Curriculum: math→ethics→medical |
+| completion_valid_rate | 0% | >0% (primary goal) | >90% (target) |
 
 ---
 
@@ -96,20 +139,23 @@ git clone https://github.com/yashhashhrrreee/faithfulreward
 cd faithfulreward
 pip install -r requirements.txt
 
-# 1. Generate synthetic training data (no API credits needed)
+# 1. Generate synthetic training data (v2: medical oversampled)
 python src/data_gen/generate_synthetic_data.py
 
 # 2. Run the reward function demo
 python src/reward_model/reward_fn.py
 
-# 3. Run all 25 tests
+# 3. Run all 39 tests (25 original + 14 new v2 tests)
 pytest tests/ -v
 
 # 4. Evaluate baseline vs simulated post-training
 python src/eval/evaluate.py
 
-# 5. Train (requires GPU + ~6GB VRAM)
-python src/training/grpo_trainer.py --steps 100
+# 5. Train v2: SFT warmup + GRPO 300 steps (requires GPU + ~4GB VRAM)
+python src/training/grpo_trainer.py --steps 300
+
+# 6. Evaluate fine-tuned model
+python src/eval/evaluate.py --model checkpoints/faithfulreward/final
 ```
 
 ---
@@ -131,17 +177,30 @@ python src/training/grpo_trainer.py --steps 100
 ```
 faithfulreward/
 ├── src/
-│   ├── data_gen/generate_synthetic_data.py   # synthetic JSONL (300 records)
-│   ├── reward_model/reward_fn.py             # rule-based scalar reward
-│   ├── training/grpo_trainer.py              # TRL GRPO + 4-bit LoRA
-│   └── eval/evaluate.py                      # before/after metrics
+│   ├── data_gen/generate_synthetic_data.py   # synthetic JSONL (300 records, medical 40%)
+│   ├── reward_model/reward_fn.py             # rule-based scalar reward + format_reward_bonus
+│   ├── training/grpo_trainer.py              # SFT warmup + TRL GRPO + 4-bit LoRA
+│   └── eval/evaluate.py                      # before/after metrics + completion_valid_rate
 ├── data/
 │   ├── divergence_log.jsonl                  # training data
-│   └── eval_results.json                     # evaluation output
-├── tests/test_reward_fn.py                   # 25 pytest tests
+│   ├── eval_results.json                     # evaluation output
+│   └── reward_curve.json                     # per-step reward + valid_rate (written during training)
+├── results/
+│   ├── RESULTS.md                            # v1 evaluation report
+│   └── RESULTS_v2.md                         # v2 evaluation report
+├── tests/test_reward_fn.py                   # 39 pytest tests
 ├── requirements.txt
 └── README.md
 ```
+
+---
+
+## Research Log
+
+| Date | Version | Report | Key Finding |
+|---|---|---|---|
+| 2026-07-24 | v1.0 | [RESULTS.md](results/RESULTS.md) | Pipeline end-to-end; convergence failed due to 100-token truncation |
+| 2026-07-24 | v2.0 | [RESULTS_v2.md](results/RESULTS_v2.md) | SFT warmup + 256 tokens; completion_valid_rate now trackable |
 
 ---
 
