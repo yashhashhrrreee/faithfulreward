@@ -27,6 +27,9 @@ sys.stdout.reconfigure(encoding="utf-8")
 # ── Seed for reproducibility ──────────────────────────────────────────────────
 random.seed(42)
 
+# v2: medical oversampled (40%) because it had the lowest baseline reward in v1
+DOMAIN_WEIGHTS = {"math": 0.30, "ethics": 0.30, "medical": 0.40}
+
 # ── Thresholds (must match FaithfulChain's auditor) ──────────────────────────
 THRESHOLDS = {
     "logical_validity": 0.75,
@@ -174,9 +177,10 @@ def make_record(domain: str, step_text: str, is_faithful: bool, session_id: str,
 def generate_dataset(n_records: int = 300) -> list[dict]:
     records = []
     domain_names = list(DOMAINS.keys())
+    domain_weights = [DOMAIN_WEIGHTS[d] for d in domain_names]
 
     while len(records) < n_records:
-        domain = random.choice(domain_names)
+        domain = random.choices(domain_names, weights=domain_weights, k=1)[0]
         session_id = str(uuid.uuid4())[:8]
         n_steps = random.randint(3, 8)
 

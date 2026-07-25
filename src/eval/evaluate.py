@@ -101,23 +101,38 @@ def evaluate_model(model_path: str, test_records: list[dict]) -> dict:
         model.eval()
 
         rewards = []
+        valid_count = 0
         for rec in test_records:
             from src.training.grpo_trainer import _build_prompt, _parse_and_score
             prompt = _build_prompt(rec["step_text"], rec["domain"])
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
             with torch.no_grad():
-                outputs = model.generate(**inputs, max_new_tokens=150, temperature=0.1)
+                outputs = model.generate(**inputs, max_new_tokens=256, temperature=0.1)
             completion = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
-            rewards.append(_parse_and_score(completion))
+            reward, is_valid = _parse_and_score(completion)
+            rewards.append(reward)
+            valid_count += 1 if is_valid else 0
 
         mean_reward = round(sum(rewards) / len(rewards), 4)
         faithful_pct = round(100 * sum(1 for r in rewards if r > 0) / len(rewards), 1)
+        completion_valid_rate = round(100 * valid_count / len(rewards), 1)
+
+        domain_stats = defaultdict(list)
+        for rec, reward in zip(test_records, rewards):
+            domain_stats[rec["domain"]].append(reward)
+
+        domain_means = {
+            domain: round(sum(rs) / len(rs), 4)
+            for domain, rs in domain_stats.items()
+        }
 
         return {
             "model": model_path,
             "n_samples": len(test_records),
             "mean_reward": mean_reward,
             "faithful_pct": faithful_pct,
+            "completion_valid_rate": completion_valid_rate,
+            "domain_mean_rewards": domain_means,
         }
 
     except Exception as e:
@@ -160,6 +175,7 @@ def _simulate_post_training(test_records: list[dict]) -> dict:
         "n_samples": len(test_records),
         "mean_reward": mean_reward,
         "faithful_pct": faithful_pct,
+        "completion_valid_rate": 100.0,  # simulation assumes format is learned
         "domain_mean_rewards": domain_means,
         "note": "Simulated post-training results. Run actual training to get real numbers.",
     }
@@ -174,6 +190,7 @@ def print_comparison(baseline: dict, trained: dict):
         ("Mean Reward", "mean_reward", "+"),
         ("Faithful %", "faithful_pct", "+"),
         ("Flagged Rate %", "flagged_rate", "-"),
+        ("Completion Valid %", "completion_valid_rate", "+"),
     ]
 
     for label, key, direction in metrics:
@@ -209,6 +226,10 @@ def save_results(baseline: dict, trained: dict, output_path: str = "data/eval_re
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\n💾 Results saved to {output_path}")
+
+    reward_curve_path = Path("data/reward_curve.json")
+    if reward_curve_path.exists():
+        print(f"   Reward curve: {reward_curve_path} (plot with matplotlib)")
 
 
 if __name__ == "__main__":
