@@ -79,12 +79,12 @@ def evaluate_baseline(test_records: list[dict]) -> dict:
     }
 
 
-def evaluate_model(model_path: str, test_records: list[dict]) -> dict:
+def evaluate_model(model_path: str, test_records: list[dict], temperature: float = 0.1) -> dict:
     """
     Evaluate the fine-tuned model by generating completions and scoring them.
     Falls back to simulated improvement if model can't be loaded.
     """
-    print(f"\n🔍 Evaluating fine-tuned model from {model_path}...")
+    print(f"\n🔍 Evaluating fine-tuned model from {model_path} (temperature={temperature})...")
 
     try:
         import torch
@@ -100,22 +100,48 @@ def evaluate_model(model_path: str, test_records: list[dict]) -> dict:
         model = PeftModel.from_pretrained(base_model, model_path)
         model.eval()
 
+        max_new_tokens = 512
         rewards = []
-        valid_count = 0
-        for rec in test_records:
-            from src.training.grpo_trainer import _build_prompt, _parse_and_score
+        valid_flags = []
+        clipped_count = 0
+        samples_output = []
+
+        from src.training.grpo_trainer import _build_prompt, _parse_and_score
+
+        for i, rec in enumerate(test_records):
             prompt = _build_prompt(rec["step_text"], rec["domain"])
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+            gen_kwargs = {"max_new_tokens": max_new_tokens}
+            if temperature > 0:
+                gen_kwargs["temperature"] = temperature
+                gen_kwargs["do_sample"] = True
+            else:
+                gen_kwargs["do_sample"] = False
             with torch.no_grad():
-                outputs = model.generate(**inputs, max_new_tokens=256, temperature=0.1)
+                outputs = model.generate(**inputs, **gen_kwargs)
+            # outputs[0] is 1D (seq_len,); inputs["input_ids"] is 2D (1, input_len)
+            n_generated = outputs[0].shape[0] - inputs["input_ids"].shape[1]
+            if n_generated >= max_new_tokens:
+                clipped_count += 1
             completion = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
             reward, is_valid = _parse_and_score(completion)
             rewards.append(reward)
-            valid_count += 1 if is_valid else 0
+            valid_flags.append(is_valid)
+            samples_output.append({
+                "index": i,
+                "domain": rec["domain"],
+                "step_text": rec["step_text"],
+                "completion": completion,
+                "reward": reward,
+                "is_valid": is_valid,
+                "temperature": temperature,
+            })
 
         mean_reward = round(sum(rewards) / len(rewards), 4)
         faithful_pct = round(100 * sum(1 for r in rewards if r > 0) / len(rewards), 1)
+        valid_count = sum(valid_flags)
         completion_valid_rate = round(100 * valid_count / len(rewards), 1)
+        clipped_ratio = round(clipped_count / len(rewards), 4)
 
         domain_stats = defaultdict(list)
         for rec, reward in zip(test_records, rewards):
@@ -126,12 +152,20 @@ def evaluate_model(model_path: str, test_records: list[dict]) -> dict:
             for domain, rs in domain_stats.items()
         }
 
+        samples_path = Path("data/eval_samples_v3.json")
+        samples_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(samples_path, "w", encoding="utf-8") as f:
+            json.dump(samples_output, f, indent=2)
+        print(f"   Per-sample results saved to {samples_path}")
+
         return {
             "model": model_path,
+            "temperature": temperature,
             "n_samples": len(test_records),
             "mean_reward": mean_reward,
             "faithful_pct": faithful_pct,
             "completion_valid_rate": completion_valid_rate,
+            "clipped_ratio": clipped_ratio,
             "domain_mean_rewards": domain_means,
         }
 
@@ -191,6 +225,7 @@ def print_comparison(baseline: dict, trained: dict):
         ("Faithful %", "faithful_pct", "+"),
         ("Flagged Rate %", "flagged_rate", "-"),
         ("Completion Valid %", "completion_valid_rate", "+"),
+        ("Clipped Ratio", "clipped_ratio", "-"),
     ]
 
     for label, key, direction in metrics:
@@ -237,6 +272,8 @@ if __name__ == "__main__":
     parser.add_argument("--data", default="data/divergence_log.jsonl")
     parser.add_argument("--model", default=None, help="Path to fine-tuned model checkpoint")
     parser.add_argument("--output", default="data/eval_results.json")
+    parser.add_argument("--temperature", type=float, default=0.1,
+                        help="Generation temperature (default 0.1 for deterministic eval, use 0.7 to test stochastic)")
     args = parser.parse_args()
 
     print("📂 Loading dataset...")
@@ -248,7 +285,7 @@ if __name__ == "__main__":
     baseline = evaluate_baseline(test_records)
 
     if args.model:
-        trained = evaluate_model(args.model, test_records)
+        trained = evaluate_model(args.model, test_records, args.temperature)
     else:
         print("\n🔍 No model checkpoint provided — running simulated post-training comparison...")
         trained = _simulate_post_training(test_records)

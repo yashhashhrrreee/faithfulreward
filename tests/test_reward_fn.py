@@ -257,10 +257,10 @@ def test_completion_valid_rate_one_for_all_valid():
 
 # ── format_warmup tests ───────────────────────────────────────────────────────
 
-def test_build_warmup_examples_returns_20():
+def test_build_warmup_examples_returns_100():
     from src.training.grpo_trainer import _build_warmup_examples
     examples = _build_warmup_examples()
-    assert len(examples) == 20
+    assert len(examples) == 100
 
 
 def test_warmup_examples_all_have_scores_line():

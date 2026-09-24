@@ -1,0 +1,37 @@
+[
+  {
+    "step": 10,
+    "mean_reward": -0.1728,
+    "completion_valid_rate": 0.2625,
+    "clipped_ratio": 1.0,
+    "frac_reward_zero_std": 0.1
+  },
+  {
+    "step": 20,
+    "mean_reward": -0.1406,
+    "completion_valid_rate": 0.23,
+    "clipped_ratio": 1.0,
+    "frac_reward_zero_std": 0.55
+  },
+  {
+    "step": 30,
+    "mean_reward": -0.1053,
+    "completion_valid_rate": 0.19,
+    "clipped_ratio": 1.0,
+    "frac_reward_zero_std": 0.4
+  },
+  {
+    "step": 40,
+    "mean_reward": -0.138,
+    "completion_valid_rate": 0.28,
+    "clipped_ratio": 1.0,
+    "frac_reward_zero_std": 0.2
+  },
+  {
+    "step": 50,
+    "mean_reward": -0.1065,
+    "completion_valid_rate": 0.27,
+    "clipped_ratio": 1.0,
+    "frac_reward_zero_std": 0.15
+  }
+]

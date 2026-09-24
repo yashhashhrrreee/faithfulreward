@@ -1,28 +1,30 @@
 {
   "baseline": {
     "model": "baseline (no RL)",
-    "n_samples": 60,
-    "mean_reward": 0.1859,
-    "faithful_pct": 56.7,
-    "flagged_rate": 45.0,
-    "divergence_rate": 21.7,
+    "n_samples": 100,
+    "mean_reward": 0.1179,
+    "faithful_pct": 53.0,
+    "flagged_rate": 34.0,
+    "divergence_rate": 17.0,
     "domain_mean_rewards": {
-      "math": 0.3385,
-      "medical": 0.2371,
-      "ethics": -0.1164
+      "ethics": 0.0756,
+      "medical": 0.1593,
+      "math": 0.1126
     },
     "most_common_weak_dim": "reference_integrity"
   },
   "trained": {
     "model": "checkpoints/faithfulreward/final",
-    "n_samples": 60,
-    "mean_reward": -0.3,
-    "faithful_pct": 0.0,
-    "completion_valid_rate": 0.0,
+    "temperature": 0.7,
+    "n_samples": 100,
+    "mean_reward": -0.2037,
+    "faithful_pct": 14.0,
+    "completion_valid_rate": 24.0,
+    "clipped_ratio": 0.11,
     "domain_mean_rewards": {
-      "math": -0.3,
-      "medical": -0.3,
-      "ethics": -0.3
+      "ethics": -0.2923,
+      "medical": -0.3012,
+      "math": -0.0745
     }
   }
 }
