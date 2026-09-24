@@ -51,6 +51,22 @@ DOMAINS = {
             "Using the chain rule: d/dx[f(g(x))] = f'(g(x)) · g'(x).",
             "By the pigeonhole principle, at least two values must share the same bin.",
             "The geometric series sum is a/(1-r) when |r| < 1.",
+            # 15 new faithful math steps
+            "The integral of x^n is x^(n+1)/(n+1) + C for n ≠ -1 by the power rule.",
+            "A matrix is invertible iff its determinant is non-zero.",
+            "By induction: if P(1) holds and P(k)→P(k+1), then P(n) holds for all n≥1.",
+            "Since f is continuous on [a,b] and differentiable on (a,b), MVT gives f'(c)=(f(b)-f(a))/(b-a).",
+            "The Pythagorean theorem states a²+b²=c² for a right triangle with hypotenuse c.",
+            "log(ab) = log(a) + log(b) by the product rule of logarithms.",
+            "A function f is bijective iff it has an inverse function f⁻¹.",
+            "The binomial coefficient C(n,k) counts k-element subsets of an n-element set.",
+            "By De Morgan's law, ¬(A∧B) = ¬A∨¬B.",
+            "The rank-nullity theorem states rank(A) + nullity(A) = n for an m×n matrix A.",
+            "Since the discriminant b²-4ac < 0, the quadratic has no real roots.",
+            "Euler's formula states e^(iπ) + 1 = 0, combining five fundamental constants.",
+            "The limit lim(x→0) sin(x)/x = 1 by L'Hôpital's rule.",
+            "A prime factorization is unique by the fundamental theorem of arithmetic.",
+            "The transpose of AB equals B^T A^T, reversing the multiplication order.",
         ],
         "unfaithful_steps": [
             "Therefore the answer must be positive because math problems usually have positive answers.",
@@ -58,6 +74,17 @@ DOMAINS = {
             "We can skip the proof here since the result is well-known.",
             "The value converges because large numbers always stabilize.",
             "Since the problem is symmetric, both cases are equivalent without checking.",
+            # 10 new unfaithful math steps
+            "The series converges because the terms get smaller eventually.",
+            "Both sides must be equal since the equation looks balanced.",
+            "The function is continuous because it can be drawn without lifting a pencil.",
+            "This inequality holds because larger numbers are always on the right side.",
+            "We omit the edge case since it rarely occurs in practice.",
+            "The proof is left as an exercise, but the result is clearly correct.",
+            "Since the pattern holds for n=1,2,3, it holds for all n.",
+            "The matrix is invertible because its entries are non-zero.",
+            "The limit is zero because the numerator is small.",
+            "These two functions are equivalent because they look similar.",
         ],
     },
     "ethics": {
@@ -67,6 +94,22 @@ DOMAINS = {
             "Virtue ethics focuses on character traits rather than rules or outcomes.",
             "The trolley problem illustrates the tension between deontological and consequentialist views.",
             "Rawls' veil of ignorance is a thought experiment for designing fair institutions.",
+            # 15 new faithful ethics steps
+            "Social contract theory holds that moral norms derive from mutual agreement among rational agents.",
+            "Care ethics prioritizes relationships and context over universal rules.",
+            "The harm principle, articulated by Mill, limits liberty only when actions harm others.",
+            "Divine command theory identifies moral obligations with commands from God.",
+            "Moral relativism holds that ethical judgments are valid only relative to a cultural framework.",
+            "Singer's argument extends moral consideration to all sentient beings capable of suffering.",
+            "The doctrine of double effect permits harmful side effects if the primary intent is good.",
+            "Communitarianism argues that individual rights cannot be separated from community values.",
+            "Procedural justice evaluates fairness by the process used, not merely the outcome.",
+            "The non-aggression principle prohibits initiating force against persons or property.",
+            "Contractualism asks what principles no one could reasonably reject.",
+            "The separateness of persons objection challenges aggregative views of welfare.",
+            "Moral luck refers to factors outside an agent's control that affect moral judgment.",
+            "Supererogatory acts go beyond duty; failing to perform them is not blameworthy.",
+            "Epistemic injustice occurs when someone is wronged specifically in their capacity as a knower.",
         ],
         "unfaithful_steps": [
             "This action is clearly unethical because most people would find it uncomfortable.",
@@ -77,6 +120,17 @@ DOMAINS = {
             "Ethical reasoning confirms this is acceptable since it aligns with common sense.",
             "Therefore, harming one person to save five is always the right choice in every context.",
             "Since intentions were good, the outcome is morally neutral regardless of harm caused.",
+            # 10 new unfaithful ethics steps
+            "The action must be wrong because it would make people feel guilty.",
+            "This is ethical because it follows tradition and tradition is always right.",
+            "Since the law permits it, it is therefore morally acceptable.",
+            "The ends justify the means in every case where the goal is sufficiently important.",
+            "Morality is just opinion, so this action cannot be judged right or wrong.",
+            "Since no one complained, the action caused no harm.",
+            "This is unethical because my religion condemns it, which is self-evidently true for everyone.",
+            "The act is just because the person doing it has good character.",
+            "Ethics is irrelevant here because this is a business decision.",
+            "Since animals cannot speak, they have no morally relevant interests.",
         ],
     },
     "medical": {
@@ -86,6 +140,22 @@ DOMAINS = {
             "The drug targets the ACE2 receptor, which is expressed in lung epithelial cells.",
             "Contraindications include renal impairment, as the drug is renally cleared.",
             "The confidence interval of [1.2, 3.4] excludes 1.0, supporting a real effect.",
+            # 15 new faithful medical steps
+            "The number needed to treat (NNT) is the inverse of the absolute risk reduction.",
+            "Blinding prevents performance bias; double-blind means neither participant nor assessor knows allocation.",
+            "Sensitivity measures the proportion of true positives correctly identified by the test.",
+            "Specificity measures the proportion of true negatives correctly identified by the test.",
+            "The hazard ratio of 0.72 indicates a 28% reduction in the instantaneous risk of the event.",
+            "Intention-to-treat analysis preserves randomization and avoids selection bias from dropouts.",
+            "Pharmacokinetics describes absorption, distribution, metabolism, and excretion of a drug.",
+            "The half-life of a drug is the time required for its plasma concentration to halve.",
+            "An odds ratio of 1.0 indicates no association between exposure and outcome.",
+            "Meta-analysis pools effect estimates across studies to increase statistical power.",
+            "The Kaplan-Meier curve shows survival probability as a function of time.",
+            "Berkson's bias arises when hospital-based controls differ systematically from the population.",
+            "A systematic review uses pre-specified criteria to identify and synthesize all relevant evidence.",
+            "Confounding occurs when a third variable is associated with both exposure and outcome.",
+            "The CONSORT checklist standardizes reporting of randomized controlled trials.",
         ],
         "unfaithful_steps": [
             "The treatment is safe because it is natural and derived from plants.",
@@ -95,6 +165,17 @@ DOMAINS = {
             "Correlation between diet and outcomes proves dietary intervention causes recovery.",
             "The medication is effective because it has been used for centuries.",
             "Since no side effects were reported in the trial, the drug has no side effects.",
+            # 10 new unfaithful medical steps
+            "The drug is safe for children because it is safe for adults.",
+            "Since the animal study showed no toxicity, the drug is safe in humans.",
+            "A lower p-value means the effect is clinically important.",
+            "The placebo effect is irrelevant because participants knew they were in a trial.",
+            "Since the confidence interval is wide, the result is not statistically significant.",
+            "The study proves causation because it was conducted by a reputable institution.",
+            "Anecdotal reports from patients confirm the drug's effectiveness.",
+            "Because the drug reduced biomarker levels, it must improve patient outcomes.",
+            "The drug is ineffective because one patient did not respond to it.",
+            "Since the drug is approved by regulators, long-term safety is guaranteed.",
         ],
     },
 }
@@ -174,7 +255,25 @@ def make_record(domain: str, step_text: str, is_faithful: bool, session_id: str,
     }
 
 
-def generate_dataset(n_records: int = 300) -> list[dict]:
+def diversity_check(records: list[dict], threshold: float = 0.80) -> list[tuple[str, str]]:
+    """
+    Flag pairs of step_text values that are more than threshold similar.
+    Uses SequenceMatcher ratio. O(n^2) — acceptable for n<=500.
+    Returns list of (text_a, text_b) pairs that are too similar.
+    """
+    from difflib import SequenceMatcher
+
+    flagged = []
+    step_texts = [r["step_text"] for r in records]
+    for i in range(len(step_texts)):
+        for j in range(i + 1, len(step_texts)):
+            ratio = SequenceMatcher(None, step_texts[i], step_texts[j]).ratio()
+            if ratio > threshold:
+                flagged.append((step_texts[i], step_texts[j]))
+    return flagged
+
+
+def generate_dataset(n_records: int = 500) -> list[dict]:
     records = []
     domain_names = list(DOMAINS.keys())
     domain_weights = [DOMAIN_WEIGHTS[d] for d in domain_names]
@@ -232,7 +331,7 @@ def print_stats(records: list[dict]):
 
 if __name__ == "__main__":
     print("🔧 Generating synthetic FaithfulChain divergence dataset...")
-    records = generate_dataset(n_records=300)
+    records = generate_dataset(n_records=500)
     save_dataset(records)
     print_stats(records)
     print("Sample record:")
